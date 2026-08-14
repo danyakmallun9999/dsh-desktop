@@ -10,17 +10,7 @@ An open-source Electron wrapper around `@deepseek-ai/dsh web` that turns DeepSee
 
 Choose whichever method fits your setup best.
 
-### Method 1: Run via NPX (Zero Setup)
-
-If you have Node.js installed, you can launch the desktop app directly without cloning the repository:
-
-```bash
-npx dsh-desktop
-```
-
----
-
-### Method 2: Linux One-Line Installer Script
+### Method 1: Linux One-Line Installer Script
 
 On Ubuntu and other Linux distributions, you can clone and set up the desktop shortcut and application menu entry in one step:
 
@@ -34,7 +24,7 @@ This installs dependencies, marks desktop shortcuts as trusted, and registers th
 
 ---
 
-### Method 3: Run from Source
+### Method 2: Run from Source
 
 If you prefer cloning and running directly with npm:
 
@@ -53,7 +43,7 @@ Or run the shell launcher:
 
 ---
 
-### Method 4: Build Standalone Binaries (AppImage, Deb, Exe, DMG)
+### Method 3: Build Standalone Binaries (AppImage, Deb, Exe, DMG)
 
 You can package the app into a standalone installer or portable binary (AppImage on Linux, EXE on Windows, DMG on macOS) using electron-builder:
 
