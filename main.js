@@ -111,7 +111,7 @@ function loadTarget(url) {
   }
 }
 
-async function initDsh() {
+async function initDsh(retryCount = 0) {
   // 1. Cek apakah dsh sudah berjalan di http://127.0.0.1:3080
   const isAlreadyRunning = await checkUrlAlive(DEFAULT_URL);
   if (isAlreadyRunning) {
@@ -127,11 +127,14 @@ async function initDsh() {
   const cmd = isWin ? 'npx.cmd' : 'npx';
   const args = ['-y', '@deepseek-ai/dsh@latest', 'web'];
 
+  const errorLogs = [];
+
   dshProcess = spawn(cmd, args, {
     shell: true,
     detached: !isWin,
     stdio: ['ignore', 'pipe', 'pipe'],
     env: process.env,
+    cwd: process.env.HOME || __dirname,
   });
 
   const onDataOutput = (data) => {
@@ -145,7 +148,12 @@ async function initDsh() {
   };
 
   dshProcess.stdout.on('data', onDataOutput);
-  dshProcess.stderr.on('data', onDataOutput);
+  dshProcess.stderr.on('data', (data) => {
+    const errText = data.toString();
+    console.warn(`[DSH stderr]: ${errText.trim()}`);
+    errorLogs.push(errText);
+    onDataOutput(data);
+  });
 
   dshProcess.on('exit', async (code, signal) => {
     console.log(`[DSH Launcher] Background process keluar (code: ${code}, signal: ${signal})`);
@@ -153,10 +161,14 @@ async function initDsh() {
       const alive = await checkUrlAlive(DEFAULT_URL);
       if (alive) {
         loadTarget(DEFAULT_URL);
+      } else if (retryCount < 1) {
+        console.log('[DSH Launcher] Mencoba mengulang proses background dsh...');
+        setTimeout(() => initDsh(retryCount + 1), 1000);
       } else if (mainWindow && !mainWindow.isDestroyed()) {
+        const detailError = errorLogs.length > 0 ? errorLogs.slice(-3).join('\n').trim() : `Exit code: ${code}`;
         dialog.showErrorBox(
           'Gagal Membuka DeepSeek Harness',
-          `Proses npx berhenti sebelum server siap (Exit code: ${code}).\nPastikan koneksi internet aktif.`
+          `Proses server dsh terhenti.\n\nDetail:\n${detailError}\n\nPastikan koneksi internet aktif jika ini kali pertama menjalankan aplikasi.`
         );
       }
     }
@@ -166,7 +178,7 @@ async function initDsh() {
     console.error('[DSH Launcher] Error saat menjalankan spawn:', err);
   });
 
-  // Polling HTTP aktif setiap 400ms sampai server siap
+  // Polling HTTP aktif setiap 500ms sampai server siap (timeout 120s untuk first-time download)
   const pollInterval = setInterval(async () => {
     if (serverUrl || isQuitting) {
       clearInterval(pollInterval);
@@ -177,11 +189,11 @@ async function initDsh() {
       clearInterval(pollInterval);
       loadTarget(DEFAULT_URL);
     }
-  }, 400);
+  }, 500);
 
   setTimeout(() => {
     clearInterval(pollInterval);
-  }, 35000);
+  }, 120000);
 }
 
 function stopDshBackend() {
