@@ -19,6 +19,11 @@ if (process.env.HOME) {
   process.env.PATH = `${extraPaths.join(':')}:${process.env.PATH || ''}`;
 }
 
+app.setName('dsh-desktop');
+if (process.platform === 'win32') {
+  app.setAppUserModelId('dsh-desktop');
+}
+
 let mainWindow = null;
 let dshProcess = null;
 let serverUrl = null;

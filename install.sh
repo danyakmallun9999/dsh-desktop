@@ -4,7 +4,7 @@ set -e
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DESKTOP_ENTRY_DIR="$HOME/.local/share/applications"
 DESKTOP_DIR="$HOME/Desktop"
-ICON_PATH="$APP_DIR/deepseek.png"
+ICON_SOURCE="$APP_DIR/deepseek.png"
 EXEC_PATH="$APP_DIR/run.sh"
 
 echo "[DeepSeek Harness Desktop Installer]"
@@ -18,6 +18,20 @@ chmod +x "$APP_DIR/bin/cli.js"
 
 mkdir -p "$DESKTOP_ENTRY_DIR"
 
+# Install icon to standard freedesktop / GNOME hicolor directories
+ICON_DIR_512="$HOME/.local/share/icons/hicolor/512x512/apps"
+ICON_DIR_SCALABLE="$HOME/.local/share/icons/hicolor/scalable/apps"
+mkdir -p "$ICON_DIR_512" "$ICON_DIR_SCALABLE"
+
+if [ -f "$ICON_SOURCE" ]; then
+  cp "$ICON_SOURCE" "$ICON_DIR_512/deepseek-dsh.png"
+  cp "$ICON_SOURCE" "$ICON_DIR_SCALABLE/deepseek-dsh.png"
+fi
+
+if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+  gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
+fi
+
 DESKTOP_CONTENT="[Desktop Entry]
 Version=1.0
 Type=Application
@@ -25,11 +39,11 @@ Name=DeepSeek Harness
 GenericName=AI Harness UI
 Comment=Community Desktop Wrapper for DeepSeek Harness
 Exec=$EXEC_PATH
-Icon=$ICON_PATH
+Icon=deepseek-dsh
 Terminal=false
 Categories=Development;Utility;
 StartupNotify=true
-StartupWMClass=DeepSeek Harness"
+StartupWMClass=dsh-desktop"
 
 echo "$DESKTOP_CONTENT" > "$DESKTOP_ENTRY_DIR/deepseek-dsh.desktop"
 chmod +x "$DESKTOP_ENTRY_DIR/deepseek-dsh.desktop"
