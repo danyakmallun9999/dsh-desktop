@@ -31,6 +31,12 @@ let isQuitting = false;
 
 const TARGET_PORTS = [3080, 8080, 3000];
 
+function sendStatus(title, detail = '', ready = false) {
+  if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents) {
+    mainWindow.webContents.send('status-update', { title, detail, ready });
+  }
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -39,10 +45,11 @@ function createWindow() {
     minHeight: 600,
     title: 'DeepSeek Harness',
     icon: path.join(__dirname, 'deepseek.png'),
-    backgroundColor: '#0a0f1d',
+    backgroundColor: '#07090e',
     autoHideMenuBar: true,
     show: false,
     webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: true,
@@ -113,20 +120,25 @@ function loadTarget(url) {
   if (serverUrl === url) return;
   serverUrl = url;
   console.log(`[DSH Launcher] Membuka URL di jendela desktop: ${url}`);
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.loadURL(url).catch((err) => {
-      console.warn('loadURL gagal, mencoba lagi...', err);
-      setTimeout(() => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.loadURL(url);
-        }
-      }, 300);
-    });
-  }
+  sendStatus('Server siap! Membuka antarmuka...', `Terhubung ke ${url}`, true);
+
+  setTimeout(() => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.loadURL(url).catch((err) => {
+        console.warn('loadURL gagal, mencoba lagi...', err);
+        setTimeout(() => {
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.loadURL(url);
+          }
+        }, 400);
+      });
+    }
+  }, 350);
 }
 
 function startBackendProcess() {
   console.log('[DSH Launcher] Memulai background process dsh...');
+  sendStatus('Memeriksa pembaruan & memuat dsh...', 'Menjalankan npx @deepseek-ai/dsh web');
 
   const isWin = process.platform === 'win32';
   const cmd = isWin ? 'npx.cmd' : 'npx';
@@ -143,8 +155,16 @@ function startBackendProcess() {
   });
 
   const onDataOutput = (data) => {
-    const output = data.toString();
-    console.log(`[DSH]: ${output.trim()}`);
+    const output = data.toString().trim();
+    console.log(`[DSH]: ${output}`);
+
+    if (output.includes('dsh web:') || output.includes('http')) {
+      sendStatus('Menyiapkan dashboard...', output);
+    } else if (output.toLowerCase().includes('download') || output.toLowerCase().includes('fetch') || output.toLowerCase().includes('npm')) {
+      sendStatus('Mengunduh pembaruan paket...', output);
+    } else {
+      sendStatus('Memuat komponen DeepSeek...', output);
+    }
 
     const match = output.match(/https?:\/\/(?:localhost|127\.0\.0\.1):[0-9]+/i);
     if (match) {
@@ -154,8 +174,8 @@ function startBackendProcess() {
 
   dshProcess.stdout.on('data', onDataOutput);
   dshProcess.stderr.on('data', (data) => {
-    const errText = data.toString();
-    console.warn(`[DSH stderr]: ${errText.trim()}`);
+    const errText = data.toString().trim();
+    console.warn(`[DSH stderr]: ${errText}`);
     errorLogs.push(errText);
     onDataOutput(data);
   });
@@ -182,25 +202,33 @@ function startBackendProcess() {
 }
 
 function initDsh() {
-  // 1. Jalankan proses backend
-  startBackendProcess();
-
-  // 2. Polling super cepat (300ms) untuk mendeteksi kapan server aktif
-  const pollInterval = setInterval(async () => {
-    if (serverUrl || isQuitting) {
-      clearInterval(pollInterval);
+  // 1. Cek langsung apakah ada server yang sudah hidup
+  scanForActiveServer().then((activeUrl) => {
+    if (activeUrl) {
+      loadTarget(activeUrl);
       return;
     }
-    const activeUrl = await scanForActiveServer();
-    if (activeUrl) {
-      clearInterval(pollInterval);
-      loadTarget(activeUrl);
-    }
-  }, 300);
 
-  setTimeout(() => {
-    clearInterval(pollInterval);
-  }, 60000);
+    // 2. Jika belum ada, jalankan background process
+    startBackendProcess();
+
+    // 3. Polling super cepat (300ms) untuk auto-detect saat server selesai start / update
+    const pollInterval = setInterval(async () => {
+      if (serverUrl || isQuitting) {
+        clearInterval(pollInterval);
+        return;
+      }
+      const aliveUrl = await scanForActiveServer();
+      if (aliveUrl) {
+        clearInterval(pollInterval);
+        loadTarget(aliveUrl);
+      }
+    }, 300);
+
+    setTimeout(() => {
+      clearInterval(pollInterval);
+    }, 90000);
+  });
 }
 
 function stopDshBackend() {
