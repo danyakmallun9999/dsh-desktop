@@ -35,12 +35,40 @@ function createWindow() {
     title: 'DeepSeek Harness',
     icon: path.join(__dirname, 'deepseek.png'),
     backgroundColor: '#0a0f1d',
+    autoHideMenuBar: true,
     show: false,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: true,
     },
+  });
+
+  // Hapus menu bar (File, View, dll.)
+  Menu.setApplicationMenu(null);
+
+  // Tangani shortcut keyboard langsung tanpa menu bar
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.type !== 'keyDown') return;
+
+    // Ctrl+R atau F5 untuk Reload
+    if ((input.control && input.key.toLowerCase() === 'r') || input.key === 'F5') {
+      if (serverUrl && mainWindow) {
+        mainWindow.loadURL(serverUrl);
+      } else if (mainWindow) {
+        mainWindow.reload();
+      }
+    }
+
+    // Ctrl+Shift+I atau F12 untuk DevTools
+    if ((input.control && input.shift && input.key.toLowerCase() === 'i') || input.key === 'F12') {
+      mainWindow.webContents.toggleDevTools();
+    }
+
+    // F11 untuk Fullscreen
+    if (input.key === 'F11') {
+      mainWindow.setFullScreen(!mainWindow.isFullScreen());
+    }
   });
 
   // Tampilkan splash loading terlebih dahulu
@@ -53,56 +81,6 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
-
-  // Setup menu minimal dengan shortcut berguna (Reload, DevTools, Fullscreen)
-  const template = [
-    {
-      label: 'File',
-      submenu: [
-        {
-          label: 'Reload App',
-          accelerator: 'CmdOrCtrl+R',
-          click: () => {
-            if (serverUrl && mainWindow) {
-              mainWindow.loadURL(serverUrl);
-            } else if (mainWindow) {
-              mainWindow.reload();
-            }
-          },
-        },
-        { type: 'separator' },
-        {
-          label: 'Quit',
-          accelerator: 'CmdOrCtrl+Q',
-          click: () => {
-            app.quit();
-          },
-        },
-      ],
-    },
-    {
-      label: 'View',
-      submenu: [
-        { role: 'resetZoom' },
-        { role: 'zoomIn' },
-        { role: 'zoomOut' },
-        { type: 'separator' },
-        { role: 'togglefullscreen' },
-        {
-          label: 'Toggle Developer Tools',
-          accelerator: process.platform === 'darwin' ? 'Alt+Command+I' : 'Ctrl+Shift+I',
-          click: () => {
-            if (mainWindow) {
-              mainWindow.webContents.toggleDevTools();
-            }
-          },
-        },
-      ],
-    },
-  ];
-
-  const menu = Menu.buildFromTemplate(template);
-  Menu.setApplicationMenu(menu);
 }
 
 // Cek apakah URL sudah aktif dan merespon request HTTP
