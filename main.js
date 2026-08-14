@@ -29,7 +29,7 @@ let dshProcess = null;
 let serverUrl = null;
 let isQuitting = false;
 
-const DEFAULT_URL = 'http://127.0.0.1:3080';
+const TARGET_PORTS = [3080, 8080, 3000];
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -49,7 +49,6 @@ function createWindow() {
     },
   });
 
-  // Hapus menu bar (File, View, dll.)
   Menu.setApplicationMenu(null);
 
   // Tangani shortcut keyboard langsung tanpa menu bar
@@ -88,18 +87,26 @@ function createWindow() {
   });
 }
 
-// Cek apakah URL sudah aktif dan merespon request HTTP
-function checkUrlAlive(url) {
+function probePort(port) {
   return new Promise((resolve) => {
-    const req = http.get(url, (res) => {
-      resolve(res.statusCode >= 200 && res.statusCode < 500);
+    const req = http.get(`http://127.0.0.1:${port}`, (res) => {
+      res.resume();
+      resolve(`http://127.0.0.1:${port}`);
     });
-    req.on('error', () => resolve(false));
-    req.setTimeout(1000, () => {
+    req.on('error', () => resolve(null));
+    req.setTimeout(500, () => {
       req.destroy();
-      resolve(false);
+      resolve(null);
     });
   });
+}
+
+async function scanForActiveServer() {
+  for (const port of TARGET_PORTS) {
+    const alive = await probePort(port);
+    if (alive) return alive;
+  }
+  return null;
 }
 
 function loadTarget(url) {
@@ -107,25 +114,23 @@ function loadTarget(url) {
   serverUrl = url;
   console.log(`[DSH Launcher] Membuka URL di jendela desktop: ${url}`);
   if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.loadURL(url);
+    mainWindow.loadURL(url).catch((err) => {
+      console.warn('loadURL gagal, mencoba lagi...', err);
+      setTimeout(() => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.loadURL(url);
+        }
+      }, 300);
+    });
   }
 }
 
-async function initDsh(retryCount = 0) {
-  // 1. Cek apakah dsh sudah berjalan di http://127.0.0.1:3080
-  const isAlreadyRunning = await checkUrlAlive(DEFAULT_URL);
-  if (isAlreadyRunning) {
-    console.log(`[DSH Launcher] Server dsh terdeteksi sudah aktif di ${DEFAULT_URL}, langsung menghubungkan...`);
-    loadTarget(DEFAULT_URL);
-    return;
-  }
-
-  // 2. Jika belum berjalan, jalankan npx @deepseek-ai/dsh@latest web
+function startBackendProcess() {
   console.log('[DSH Launcher] Memulai background process dsh...');
 
   const isWin = process.platform === 'win32';
   const cmd = isWin ? 'npx.cmd' : 'npx';
-  const args = ['-y', '@deepseek-ai/dsh@latest', 'web'];
+  const args = ['-y', '@deepseek-ai/dsh', 'web'];
 
   const errorLogs = [];
 
@@ -158,17 +163,14 @@ async function initDsh(retryCount = 0) {
   dshProcess.on('exit', async (code, signal) => {
     console.log(`[DSH Launcher] Background process keluar (code: ${code}, signal: ${signal})`);
     if (!isQuitting && !serverUrl) {
-      const alive = await checkUrlAlive(DEFAULT_URL);
-      if (alive) {
-        loadTarget(DEFAULT_URL);
-      } else if (retryCount < 1) {
-        console.log('[DSH Launcher] Mencoba mengulang proses background dsh...');
-        setTimeout(() => initDsh(retryCount + 1), 1000);
+      const active = await scanForActiveServer();
+      if (active) {
+        loadTarget(active);
       } else if (mainWindow && !mainWindow.isDestroyed()) {
         const detailError = errorLogs.length > 0 ? errorLogs.slice(-3).join('\n').trim() : `Exit code: ${code}`;
         dialog.showErrorBox(
           'Gagal Membuka DeepSeek Harness',
-          `Proses server dsh terhenti.\n\nDetail:\n${detailError}\n\nPastikan koneksi internet aktif jika ini kali pertama menjalankan aplikasi.`
+          `Proses server dsh terhenti.\n\nDetail:\n${detailError}`
         );
       }
     }
@@ -177,23 +179,28 @@ async function initDsh(retryCount = 0) {
   dshProcess.on('error', (err) => {
     console.error('[DSH Launcher] Error saat menjalankan spawn:', err);
   });
+}
 
-  // Polling HTTP aktif setiap 500ms sampai server siap (timeout 120s untuk first-time download)
+function initDsh() {
+  // 1. Jalankan proses backend
+  startBackendProcess();
+
+  // 2. Polling super cepat (300ms) untuk mendeteksi kapan server aktif
   const pollInterval = setInterval(async () => {
     if (serverUrl || isQuitting) {
       clearInterval(pollInterval);
       return;
     }
-    const alive = await checkUrlAlive(DEFAULT_URL);
-    if (alive) {
+    const activeUrl = await scanForActiveServer();
+    if (activeUrl) {
       clearInterval(pollInterval);
-      loadTarget(DEFAULT_URL);
+      loadTarget(activeUrl);
     }
-  }, 500);
+  }, 300);
 
   setTimeout(() => {
     clearInterval(pollInterval);
-  }, 120000);
+  }, 60000);
 }
 
 function stopDshBackend() {
