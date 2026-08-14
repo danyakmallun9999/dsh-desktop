@@ -25,7 +25,7 @@ npx dsh-desktop
 On Ubuntu and other Linux distributions, you can clone and set up the desktop shortcut and application menu entry in one step:
 
 ```bash
-git clone https://github.com/your-username/dsh-desktop.git
+git clone https://github.com/danyakmallun9999/dsh-desktop.git
 cd dsh-desktop
 ./install.sh
 ```
@@ -39,7 +39,7 @@ This installs dependencies, marks desktop shortcuts as trusted, and registers th
 If you prefer cloning and running directly with npm:
 
 ```bash
-git clone https://github.com/your-username/dsh-desktop.git
+git clone https://github.com/danyakmallun9999/dsh-desktop.git
 cd dsh-desktop
 npm install
 npm start
