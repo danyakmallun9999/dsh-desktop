@@ -1,0 +1,59 @@
+{
+  "name": "dsh-desktop",
+  "version": "1.0.0",
+  "description": "DeepSeek Harness Desktop App (Community Edition)",
+  "main": "main.js",
+  "bin": {
+    "dsh-desktop": "./bin/cli.js"
+  },
+  "scripts": {
+    "start": "electron . --no-sandbox",
+    "dev": "electron . --no-sandbox",
+    "dist": "electron-builder"
+  },
+  "keywords": [
+    "deepseek",
+    "dsh",
+    "electron",
+    "desktop",
+    "ai"
+  ],
+  "author": "",
+  "license": "MIT",
+  "build": {
+    "appId": "com.community.deepseek.harness",
+    "productName": "DeepSeek Harness",
+    "files": [
+      "main.js",
+      "loading.html",
+      "deepseek.png",
+      "package.json"
+    ],
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Development",
+      "icon": "deepseek.png"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "deepseek.png"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "deepseek.png"
+    }
+  },
+  "devDependencies": {
+    "electron": "^34.0.0",
+    "electron-builder": "^25.1.8"
+  }
+}
