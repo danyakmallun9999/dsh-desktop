@@ -9,7 +9,10 @@
   "scripts": {
     "start": "electron . --no-sandbox",
     "dev": "electron . --no-sandbox",
-    "dist": "electron-builder"
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:linux": "electron-builder --linux",
+    "dist:mac": "electron-builder --mac"
   },
   "keywords": [
     "deepseek",
@@ -46,6 +49,13 @@
       ],
       "icon": "deepseek.png"
     },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "DeepSeek Harness"
+    },
     "mac": {
       "target": [
         "dmg",
@@ -54,8 +64,10 @@
       "icon": "deepseek.png"
     }
   },
+  "dependencies": {
+    "electron": "^34.0.0"
+  },
   "devDependencies": {
-    "electron": "^34.0.0",
     "electron-builder": "^25.1.8"
   }
 }
