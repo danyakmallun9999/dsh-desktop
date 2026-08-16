@@ -175,7 +175,7 @@
     <h1 class="brand-title">
       DeepSeek <span class="brand-sub">Harness</span>
     </h1>
-    <span class="brand-edition">Community Desktop</span>
+    <span class="brand-edition" id="brand-edition">Community Desktop</span>
 
     <!-- Status & Progress Section -->
     <div class="status-section">
@@ -185,7 +185,7 @@
 
       <!-- Optional Update Notification Pill -->
       <div id="update-badge" class="update-badge" style="display: none;">
-        <span>Mengunduh pembaruan versi terbaru...</span>
+        <span id="update-badge-text">Mengunduh pembaruan versi terbaru...</span>
       </div>
 
       <span class="status-text" id="status-title">Memeriksa pembaruan & memuat server...</span>
@@ -197,6 +197,8 @@
     const statusTitle = document.getElementById('status-title');
     const logTicker = document.getElementById('log-ticker');
     const updateBadge = document.getElementById('update-badge');
+    const updateBadgeText = document.getElementById('update-badge-text');
+    const brandEdition = document.getElementById('brand-edition');
 
     if (window.electronAPI && window.electronAPI.onStatusUpdate) {
       window.electronAPI.onStatusUpdate((data) => {
@@ -206,8 +208,14 @@
         if (data.detail) {
           logTicker.textContent = data.detail;
         }
-        if (data.isUpdate) {
+        if (data.version && brandEdition) {
+          brandEdition.textContent = `v${data.version} • Community Desktop`;
+        }
+        if (data.isUpdate && updateBadge) {
           updateBadge.style.display = 'inline-flex';
+          if (data.version && updateBadgeText) {
+            updateBadgeText.textContent = `Mengunduh pembaruan v${data.version}...`;
+          }
         }
       });
     }

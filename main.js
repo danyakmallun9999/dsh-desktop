@@ -1,7 +1,9 @@
-const { app, BrowserWindow, dialog, Menu } = require('electron');
+const { app, BrowserWindow, dialog, Menu, Tray, shell, clipboard, nativeImage } = require('electron');
 const { spawn } = require('child_process');
 const path = require('path');
 const http = require('http');
+const https = require('https');
+const fs = require('fs');
 
 app.commandLine.appendSwitch('no-sandbox');
 
@@ -28,19 +30,198 @@ let mainWindow = null;
 let dshProcess = null;
 let serverUrl = null;
 let isQuitting = false;
+let tray = null;
+let remoteVersion = null;
 
-const TARGET_PORTS = [3080, 8080, 3000];
+const TARGET_PORTS = [3080, 8080, 3000, 3001, 8081, 5000, 5173];
+const stateFile = path.join(app.getPath('userData'), 'window-state.json');
 
-function sendStatus(title, detail = '', ready = false, isUpdate = false) {
-  if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents) {
-    mainWindow.webContents.send('status-update', { title, detail, ready, isUpdate });
+// --- 1. WINDOW STATE MEMORY ---
+function loadWindowState() {
+  try {
+    if (fs.existsSync(stateFile)) {
+      const data = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+      return {
+        x: data.x,
+        y: data.y,
+        width: typeof data.width === 'number' && data.width >= 800 ? data.width : 1280,
+        height: typeof data.height === 'number' && data.height >= 600 ? data.height : 860,
+        isMaximized: !!data.isMaximized,
+      };
+    }
+  } catch (e) {
+    console.warn('[DSH Launcher] Gagal membaca window-state.json:', e);
+  }
+  return { width: 1280, height: 860, isMaximized: false };
+}
+
+function saveWindowState() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  try {
+    const isMaximized = mainWindow.isMaximized();
+    const bounds = mainWindow.getNormalBounds ? mainWindow.getNormalBounds() : mainWindow.getBounds();
+    fs.writeFileSync(
+      stateFile,
+      JSON.stringify({
+        x: bounds.x,
+        y: bounds.y,
+        width: bounds.width,
+        height: bounds.height,
+        isMaximized,
+      }),
+      'utf8'
+    );
+  } catch (e) {
+    console.warn('[DSH Launcher] Gagal menyimpan window-state.json:', e);
   }
 }
 
+// --- 2. VERSION INSPECTOR (NPM REGISTRY) ---
+function fetchLatestNpmVersion() {
+  return new Promise((resolve) => {
+    const req = https.get('https://registry.npmjs.org/@deepseek-ai/dsh/latest', { timeout: 3500 }, (res) => {
+      let raw = '';
+      res.on('data', (chunk) => (raw += chunk));
+      res.on('end', () => {
+        try {
+          const data = JSON.parse(raw);
+          resolve(data.version || null);
+        } catch (e) {
+          resolve(null);
+        }
+      });
+    });
+    req.on('error', () => resolve(null));
+    req.on('timeout', () => {
+      req.destroy();
+      resolve(null);
+    });
+  });
+}
+
+function sendStatus(title, detail = '', ready = false, isUpdate = false, version = null) {
+  if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents) {
+    mainWindow.webContents.send('status-update', {
+      title,
+      detail,
+      ready,
+      isUpdate,
+      version: version || remoteVersion,
+    });
+  }
+}
+
+// --- 3. SYSTEM TRAY ---
+function updateTrayMenu() {
+  if (!tray || tray.isDestroyed()) return;
+  const isOnline = !!serverUrl;
+
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: isOnline ? `● Server Aktif (${serverUrl})` : '○ Menyiapkan Server...',
+      enabled: false,
+    },
+    {
+      label: remoteVersion ? `Versi Paket: v${remoteVersion}` : 'DeepSeek Harness Desktop',
+      enabled: false,
+    },
+    { type: 'separator' },
+    {
+      label: 'Buka DeepSeek Harness',
+      click: () => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.show();
+          mainWindow.focus();
+        }
+      },
+    },
+    {
+      label: 'Buka di Browser Eksternal',
+      enabled: isOnline,
+      click: () => {
+        if (serverUrl) shell.openExternal(serverUrl);
+      },
+    },
+    {
+      label: 'Salin URL Server Lokal',
+      enabled: isOnline,
+      click: () => {
+        if (serverUrl) clipboard.writeText(serverUrl);
+      },
+    },
+    { type: 'separator' },
+    {
+      label: 'Muat Ulang (Reload)',
+      click: () => {
+        if (serverUrl && mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.loadURL(serverUrl);
+        } else if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.reload();
+        }
+      },
+    },
+    {
+      label: 'Restart Server Backend',
+      click: () => {
+        serverUrl = null;
+        updateTrayMenu();
+        stopDshBackend();
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.loadFile(path.join(__dirname, 'loading.html'));
+        }
+        initDsh();
+      },
+    },
+    { type: 'separator' },
+    {
+      label: 'Keluar (Quit)',
+      click: () => {
+        isQuitting = true;
+        app.quit();
+      },
+    },
+  ]);
+
+  tray.setContextMenu(contextMenu);
+}
+
+function createTray() {
+  if (tray) return;
+  try {
+    const iconPath = path.join(__dirname, 'deepseek.png');
+    const image = nativeImage.createFromPath(iconPath);
+    const trayIcon = image.resize({ width: 18, height: 18 });
+    tray = new Tray(trayIcon);
+    tray.setToolTip('DeepSeek Harness Desktop');
+    updateTrayMenu();
+
+    tray.on('click', () => {
+      if (!mainWindow || mainWindow.isDestroyed()) return;
+      if (mainWindow.isVisible()) {
+        if (mainWindow.isFocused()) {
+          mainWindow.hide();
+        } else {
+          mainWindow.focus();
+        }
+      } else {
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    });
+  } catch (err) {
+    console.warn('[DSH Launcher] Pembuatan System Tray dilewati:', err);
+  }
+}
+
+// --- 4. CREATE BROWSER WINDOW ---
 function createWindow() {
+  const savedState = loadWindowState();
+
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 860,
+    x: savedState.x,
+    y: savedState.y,
+    width: savedState.width,
+    height: savedState.height,
     minWidth: 800,
     minHeight: 600,
     title: 'DeepSeek Harness',
@@ -56,7 +237,18 @@ function createWindow() {
     },
   });
 
+  if (savedState.isMaximized) {
+    mainWindow.maximize();
+  }
+
   Menu.setApplicationMenu(null);
+
+  // Simpan state saat jendela diubah ukuran atau posisinya
+  const debouncedSave = () => {
+    saveWindowState();
+  };
+  mainWindow.on('resize', debouncedSave);
+  mainWindow.on('move', debouncedSave);
 
   // Tangani shortcut keyboard langsung tanpa menu bar
   mainWindow.webContents.on('before-input-event', (event, input) => {
@@ -89,11 +281,16 @@ function createWindow() {
     mainWindow.show();
   });
 
+  mainWindow.on('close', () => {
+    saveWindowState();
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
 }
 
+// --- 5. DYNAMIC PORT PROBING & SERVER SCANNING ---
 function probePort(port) {
   return new Promise((resolve) => {
     const req = http.get(`http://127.0.0.1:${port}`, (res) => {
@@ -101,7 +298,7 @@ function probePort(port) {
       resolve(`http://127.0.0.1:${port}`);
     });
     req.on('error', () => resolve(null));
-    req.setTimeout(500, () => {
+    req.setTimeout(400, () => {
       req.destroy();
       resolve(null);
     });
@@ -120,6 +317,7 @@ function loadTarget(url) {
   if (serverUrl === url) return;
   serverUrl = url;
   console.log(`[DSH Launcher] Membuka URL di jendela desktop: ${url}`);
+  updateTrayMenu();
   sendStatus('Server siap! Membuka antarmuka...', `Terhubung ke ${url}`, true);
 
   setTimeout(() => {
@@ -133,9 +331,10 @@ function loadTarget(url) {
         }, 400);
       });
     }
-  }, 350);
+  }, 300);
 }
 
+// --- 6. BACKGROUND PROCESS & ROBUST SHUTDOWN ---
 function startBackendProcess() {
   console.log('[DSH Launcher] Memulai background process dsh...');
   sendStatus('Memeriksa pembaruan & memuat dsh...', 'Menjalankan npx @deepseek-ai/dsh@latest web');
@@ -213,6 +412,15 @@ function startBackendProcess() {
 }
 
 function initDsh() {
+  // Cek versi terbaru di background secara simultan
+  fetchLatestNpmVersion().then((ver) => {
+    if (ver) {
+      remoteVersion = ver;
+      updateTrayMenu();
+      sendStatus('Memeriksa pembaruan & memuat dsh...', `Versi paket: @deepseek-ai/dsh@${ver}`);
+    }
+  });
+
   // 1. Cek langsung apakah ada server yang sudah hidup
   scanForActiveServer().then((activeUrl) => {
     if (activeUrl) {
@@ -223,7 +431,7 @@ function initDsh() {
     // 2. Jika belum ada, jalankan background process
     startBackendProcess();
 
-    // 3. Polling super cepat (300ms) untuk auto-detect saat server selesai start / update
+    // 3. Polling cepat (300ms) untuk auto-detect saat server selesai start
     const pollInterval = setInterval(async () => {
       if (serverUrl || isQuitting) {
         clearInterval(pollInterval);
@@ -242,28 +450,40 @@ function initDsh() {
   });
 }
 
+// Anti-Zombie child process termination
 function stopDshBackend() {
   if (!dshProcess) return;
 
   console.log('[DSH Launcher] Menghentikan background process dsh...');
+  const pid = dshProcess.pid;
+  dshProcess = null;
+
   try {
     if (process.platform === 'win32') {
-      spawn('taskkill', ['/pid', dshProcess.pid.toString(), '/f', '/t']);
+      spawn('taskkill', ['/pid', pid.toString(), '/f', '/t']);
     } else {
       try {
-        process.kill(-dshProcess.pid, 'SIGTERM');
+        process.kill(-pid, 'SIGTERM');
+        setTimeout(() => {
+          try {
+            process.kill(-pid, 'SIGKILL');
+          } catch (e) {}
+        }, 1200);
       } catch (e) {
-        dshProcess.kill('SIGTERM');
+        try {
+          process.kill(pid, 'SIGTERM');
+        } catch (e2) {}
       }
     }
   } catch (e) {
-    console.error('Error saat mematikan child process:', e);
+    console.error('[DSH Launcher] Error saat mematikan child process:', e);
   }
-  dshProcess = null;
 }
 
+// --- APP LIFECYCLE HOOKS ---
 app.whenReady().then(() => {
   createWindow();
+  createTray();
   initDsh();
 
   app.on('activate', () => {
@@ -272,19 +492,39 @@ app.whenReady().then(() => {
       if (serverUrl && mainWindow) {
         mainWindow.loadURL(serverUrl);
       }
+    } else if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.show();
+      mainWindow.focus();
     }
   });
 });
 
 app.on('before-quit', () => {
   isQuitting = true;
+  saveWindowState();
+  stopDshBackend();
+});
+
+app.on('will-quit', () => {
+  isQuitting = true;
   stopDshBackend();
 });
 
 app.on('window-all-closed', () => {
   isQuitting = true;
+  saveWindowState();
   stopDshBackend();
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+process.on('SIGINT', () => {
+  stopDshBackend();
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  stopDshBackend();
+  process.exit(0);
 });
