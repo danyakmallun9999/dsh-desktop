@@ -6,11 +6,13 @@
   <title>DeepSeek Harness</title>
   <style>
     :root {
-      --bg: #181e2b;
+      --bg: #1c1c1c;
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
       --text-dim: #64748b;
-      --bar-color: #cbd5e1;
+      --bar-color: #e2e8f0;
+      --badge-update-bg: rgba(255, 255, 255, 0.08);
+      --badge-update-border: rgba(255, 255, 255, 0.14);
     }
 
     * {
@@ -74,7 +76,7 @@
       margin-bottom: 36px;
     }
 
-    /* Floating Status & Progress (No blue, Clean monochrome) */
+    /* Floating Status & Progress */
     .status-section {
       width: 100%;
       display: flex;
@@ -113,6 +115,21 @@
       overflow: hidden;
       text-overflow: ellipsis;
       max-width: 95%;
+    }
+
+    /* Update Badge / Alert Pill (Shown when an update is detected) */
+    .update-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      color: #f1f5f9;
+      background-color: var(--badge-update-bg);
+      border: 1px solid var(--badge-update-border);
+      padding: 3px 10px;
+      border-radius: 99px;
+      animation: fadeIn 0.3s ease-out forwards;
     }
 
     /* Subtext Log Ticker */
@@ -166,6 +183,11 @@
         <div class="progress-bar" id="progress-bar"></div>
       </div>
 
+      <!-- Optional Update Notification Pill -->
+      <div id="update-badge" class="update-badge" style="display: none;">
+        <span>Mengunduh pembaruan versi terbaru...</span>
+      </div>
+
       <span class="status-text" id="status-title">Memeriksa pembaruan & memuat server...</span>
       <div class="log-ticker" id="log-ticker">Menyiapkan lingkungan npx @deepseek-ai/dsh@latest...</div>
     </div>
@@ -174,6 +196,7 @@
   <script>
     const statusTitle = document.getElementById('status-title');
     const logTicker = document.getElementById('log-ticker');
+    const updateBadge = document.getElementById('update-badge');
 
     if (window.electronAPI && window.electronAPI.onStatusUpdate) {
       window.electronAPI.onStatusUpdate((data) => {
@@ -182,6 +205,9 @@
         }
         if (data.detail) {
           logTicker.textContent = data.detail;
+        }
+        if (data.isUpdate) {
+          updateBadge.style.display = 'inline-flex';
         }
       });
     }

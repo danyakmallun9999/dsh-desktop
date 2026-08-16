@@ -31,9 +31,9 @@ let isQuitting = false;
 
 const TARGET_PORTS = [3080, 8080, 3000];
 
-function sendStatus(title, detail = '', ready = false) {
+function sendStatus(title, detail = '', ready = false, isUpdate = false) {
   if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents) {
-    mainWindow.webContents.send('status-update', { title, detail, ready });
+    mainWindow.webContents.send('status-update', { title, detail, ready, isUpdate });
   }
 }
 
@@ -45,7 +45,7 @@ function createWindow() {
     minHeight: 600,
     title: 'DeepSeek Harness',
     icon: path.join(__dirname, 'deepseek.png'),
-    backgroundColor: '#181e2b',
+    backgroundColor: '#1c1c1c',
     autoHideMenuBar: true,
     show: false,
     webPreferences: {
@@ -157,11 +157,22 @@ function startBackendProcess() {
   const onDataOutput = (data) => {
     const output = data.toString().trim();
     console.log(`[DSH]: ${output}`);
+    const lower = output.toLowerCase();
 
-    if (output.includes('dsh web:') || output.includes('http')) {
+    if (
+      lower.includes('need to install') ||
+      lower.includes('download') ||
+      lower.includes('fetch') ||
+      lower.includes('reified') ||
+      lower.includes('added') ||
+      lower.includes('npm http fetch') ||
+      lower.includes('packages in')
+    ) {
+      sendStatus('Pembaruan Ditemukan!', `Mengunduh & memasang: ${output}`, false, true);
+    } else if (output.includes('dsh web:') || output.includes('http')) {
       sendStatus('Menyiapkan dashboard...', output);
-    } else if (output.toLowerCase().includes('download') || output.toLowerCase().includes('fetch') || output.toLowerCase().includes('npm')) {
-      sendStatus('Mengunduh pembaruan paket...', output);
+    } else if (lower.includes('ready') || lower.includes('started') || lower.includes('listening')) {
+      sendStatus('Server siap! Membuka antarmuka...', output, true);
     } else {
       sendStatus('Memuat komponen DeepSeek...', output);
     }
