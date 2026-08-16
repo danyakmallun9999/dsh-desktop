@@ -77,7 +77,7 @@
       margin-bottom: 36px;
     }
 
-    /* Floating Status & Progress (No card) */
+    /* Floating Status & Progress (No card, No blinking dot) */
     .status-section {
       width: 100%;
       display: flex;
@@ -107,38 +107,21 @@
       animation: progress-slide 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
     }
 
-    /* Status Label with Live Dot */
-    .status-row {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 7px;
-      width: 100%;
-    }
-
-    .pulse-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background-color: var(--brand-cyan);
-      animation: pulse-simple 1.8s infinite ease-in-out;
-      flex-shrink: 0;
-    }
-
+    /* Clean Status Label */
     .status-text {
-      font-size: 12px;
+      font-size: 12.5px;
       font-weight: 500;
       color: var(--text-muted);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 90%;
+      max-width: 95%;
     }
 
     /* Subtext Log Ticker */
     .log-ticker {
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      font-size: 10px;
+      font-size: 10.5px;
       color: var(--text-dim);
       white-space: nowrap;
       overflow: hidden;
@@ -155,17 +138,6 @@
       100% {
         opacity: 1;
         transform: translateY(0);
-      }
-    }
-
-    @keyframes pulse-simple {
-      0%, 100% {
-        opacity: 1;
-        transform: scale(1);
-      }
-      50% {
-        opacity: 0.3;
-        transform: scale(0.85);
       }
     }
 
@@ -192,17 +164,13 @@
     </h1>
     <span class="brand-edition">Community Desktop</span>
 
-    <!-- Status & Progress Section (No card/box) -->
+    <!-- Status & Progress Section -->
     <div class="status-section">
       <div class="progress-track">
         <div class="progress-bar" id="progress-bar"></div>
       </div>
 
-      <div class="status-row">
-        <div class="pulse-dot" id="pulse-dot"></div>
-        <span class="status-text" id="status-title">Memeriksa pembaruan & memuat server...</span>
-      </div>
-
+      <span class="status-text" id="status-title">Memeriksa pembaruan & memuat server...</span>
       <div class="log-ticker" id="log-ticker">Menyiapkan lingkungan npx @deepseek-ai/dsh...</div>
     </div>
   </main>
@@ -210,7 +178,6 @@
   <script>
     const statusTitle = document.getElementById('status-title');
     const logTicker = document.getElementById('log-ticker');
-    const pulseDot = document.getElementById('pulse-dot');
 
     if (window.electronAPI && window.electronAPI.onStatusUpdate) {
       window.electronAPI.onStatusUpdate((data) => {
@@ -219,9 +186,6 @@
         }
         if (data.detail) {
           logTicker.textContent = data.detail;
-        }
-        if (data.ready) {
-          pulseDot.style.backgroundColor = '#34d399';
         }
       });
     }
