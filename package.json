@@ -31,7 +31,6 @@
       "preload.js",
       "loading.html",
       "deepseek.png",
-      "splash_artwork.jpg",
       "package.json"
     ],
     "linux": {
