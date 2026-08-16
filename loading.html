@@ -6,12 +6,11 @@
   <title>DeepSeek Harness</title>
   <style>
     :root {
-      --bg: #0d111a;
+      --bg: #181e2b;
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
-      --text-dim: #475569;
-      --brand-blue: #60a5fa;
-      --brand-cyan: #38bdf8;
+      --text-dim: #64748b;
+      --bar-color: #cbd5e1;
     }
 
     * {
@@ -51,33 +50,31 @@
       margin-bottom: 20px;
     }
 
-    /* Brand Typography */
+    /* Brand Typography (Dark Monochrome) */
     .brand-title {
       font-size: 24px;
       font-weight: 700;
       letter-spacing: -0.025em;
       line-height: 1.2;
       margin-bottom: 4px;
-    }
-
-    .brand-title .brand-accent {
-      color: var(--brand-cyan);
+      color: var(--text-main);
     }
 
     .brand-title .brand-sub {
-      color: var(--text-main);
-      font-weight: 600;
+      color: #94a3b8;
+      font-weight: 500;
     }
 
     .brand-edition {
       font-size: 11px;
       font-weight: 500;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
       color: var(--text-dim);
       margin-bottom: 36px;
     }
 
-    /* Floating Status & Progress (No card, No blinking dot) */
+    /* Floating Status & Progress (No blue, Clean monochrome) */
     .status-section {
       width: 100%;
       display: flex;
@@ -102,7 +99,7 @@
       left: 0;
       height: 100%;
       width: 35%;
-      background-color: var(--brand-blue);
+      background-color: var(--bar-color);
       border-radius: 99px;
       animation: progress-slide 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
     }
@@ -159,8 +156,7 @@
 
     <!-- Brand Typography -->
     <h1 class="brand-title">
-      <span class="brand-accent">DeepSeek</span>
-      <span class="brand-sub">Harness</span>
+      DeepSeek <span class="brand-sub">Harness</span>
     </h1>
     <span class="brand-edition">Community Desktop</span>
 
