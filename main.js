@@ -138,11 +138,11 @@ function loadTarget(url) {
 
 function startBackendProcess() {
   console.log('[DSH Launcher] Memulai background process dsh...');
-  sendStatus('Memeriksa pembaruan & memuat dsh...', 'Menjalankan npx @deepseek-ai/dsh web');
+  sendStatus('Memeriksa pembaruan & memuat dsh...', 'Menjalankan npx @deepseek-ai/dsh@latest web');
 
   const isWin = process.platform === 'win32';
   const cmd = isWin ? 'npx.cmd' : 'npx';
-  const args = ['-y', '@deepseek-ai/dsh', 'web'];
+  const args = ['-y', '@deepseek-ai/dsh@latest', 'web'];
 
   const errorLogs = [];
 
