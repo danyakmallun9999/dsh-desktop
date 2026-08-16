@@ -6,16 +6,12 @@
   <title>DeepSeek Harness</title>
   <style>
     :root {
-      --bg: #0f141f;
-      --card-bg: #161d2d;
-      --border: rgba(255, 255, 255, 0.07);
+      --bg: #0d111a;
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
-      --text-dim: #64748b;
+      --text-dim: #475569;
       --brand-blue: #60a5fa;
-      --brand-cyan: #7dd3fc;
-      --badge-bg: rgba(96, 165, 250, 0.1);
-      --badge-border: rgba(96, 165, 250, 0.18);
+      --brand-cyan: #38bdf8;
     }
 
     * {
@@ -37,50 +33,31 @@
       justify-content: center;
     }
 
-    .splash-container {
+    /* Pure Minimalist Floating Layout (No Card Wrappers) */
+    .splash-view {
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
-      width: 380px;
-      max-width: 90vw;
-      padding: 40px 24px;
+      width: 320px;
       animation: fadeIn 0.4s ease-out forwards;
     }
 
-    /* Logo & Brand Header */
-    .brand-section {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-bottom: 32px;
-    }
-
-    .brand-icon {
-      width: 60px;
-      height: 60px;
-      border-radius: 16px;
-      background-color: var(--card-bg);
-      border: 1px solid var(--border);
-      padding: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 16px;
-    }
-
-    .brand-icon img {
-      width: 100%;
-      height: 100%;
+    /* Direct Logo (No box/container) */
+    .logo-img {
+      width: 64px;
+      height: 64px;
       object-fit: contain;
+      margin-bottom: 20px;
     }
 
+    /* Brand Typography */
     .brand-title {
-      font-size: 22px;
+      font-size: 24px;
       font-weight: 700;
       letter-spacing: -0.025em;
       line-height: 1.2;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
 
     .brand-title .brand-accent {
@@ -92,62 +69,28 @@
       font-weight: 600;
     }
 
-    .brand-badge {
-      font-size: 10.5px;
+    .brand-edition {
+      font-size: 11px;
       font-weight: 500;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--brand-blue);
-      background-color: var(--badge-bg);
-      border: 1px solid var(--badge-border);
-      padding: 2.5px 9px;
-      border-radius: 4px;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      margin-bottom: 36px;
     }
 
-    /* Status & Progress */
-    .status-container {
+    /* Floating Status & Progress (No card) */
+    .status-section {
       width: 100%;
-      background-color: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px 18px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      text-align: left;
-    }
-
-    .status-row {
-      display: flex;
       align-items: center;
-      gap: 9px;
-      width: 100%;
+      gap: 12px;
     }
 
-    .pulse-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background-color: var(--brand-cyan);
-      animation: pulse-simple 1.8s infinite ease-in-out;
-      flex-shrink: 0;
-    }
-
-    .status-text {
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-main);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      flex: 1;
-    }
-
-    /* Minimal Solid Progress Bar */
+    /* Minimal Slim Progress Bar */
     .progress-track {
       width: 100%;
-      height: 3px;
-      background-color: rgba(255, 255, 255, 0.06);
+      height: 2px;
+      background-color: rgba(255, 255, 255, 0.08);
       border-radius: 99px;
       overflow: hidden;
       position: relative;
@@ -158,29 +101,50 @@
       top: 0;
       left: 0;
       height: 100%;
-      width: 32%;
+      width: 35%;
       background-color: var(--brand-blue);
       border-radius: 99px;
       animation: progress-slide 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
     }
 
-    /* Terminal Subtext Ticker */
+    /* Status Label with Live Dot */
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      width: 100%;
+    }
+
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--brand-cyan);
+      animation: pulse-simple 1.8s infinite ease-in-out;
+      flex-shrink: 0;
+    }
+
+    .status-text {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 90%;
+    }
+
+    /* Subtext Log Ticker */
     .log-ticker {
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      font-size: 10.5px;
+      font-size: 10px;
       color: var(--text-dim);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      line-height: 1.3;
-    }
-
-    /* Minimal Footer */
-    .footer {
-      margin-top: 24px;
-      font-size: 11px;
-      color: var(--text-dim);
-      letter-spacing: 0.01em;
+      max-width: 100%;
+      line-height: 1.2;
     }
 
     @keyframes fadeIn {
@@ -217,37 +181,30 @@
 </head>
 <body>
 
-  <main class="splash-container">
-    <!-- Brand Section (Logo & Title) -->
-    <header class="brand-section">
-      <div class="brand-icon">
-        <img src="deepseek.png" alt="DeepSeek Logo">
-      </div>
-      <h1 class="brand-title">
-        <span class="brand-accent">DeepSeek</span>
-        <span class="brand-sub">Harness</span>
-      </h1>
-      <span class="brand-badge">Community Desktop</span>
-    </header>
+  <main class="splash-view">
+    <!-- Clean Floating Logo -->
+    <img src="deepseek.png" alt="DeepSeek Logo" class="logo-img">
 
-    <!-- Status & Progress Card -->
-    <section class="status-container">
+    <!-- Brand Typography -->
+    <h1 class="brand-title">
+      <span class="brand-accent">DeepSeek</span>
+      <span class="brand-sub">Harness</span>
+    </h1>
+    <span class="brand-edition">Community Desktop</span>
+
+    <!-- Status & Progress Section (No card/box) -->
+    <div class="status-section">
+      <div class="progress-track">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+
       <div class="status-row">
         <div class="pulse-dot" id="pulse-dot"></div>
         <span class="status-text" id="status-title">Memeriksa pembaruan & memuat server...</span>
       </div>
 
-      <div class="progress-track">
-        <div class="progress-bar" id="progress-bar"></div>
-      </div>
-
       <div class="log-ticker" id="log-ticker">Menyiapkan lingkungan npx @deepseek-ai/dsh...</div>
-    </section>
-
-    <!-- Minimal Footer -->
-    <footer class="footer">
-      <span>DeepSeek Harness Desktop &bull; v1.0.0</span>
-    </footer>
+    </div>
   </main>
 
   <script>

@@ -45,7 +45,7 @@ function createWindow() {
     minHeight: 600,
     title: 'DeepSeek Harness',
     icon: path.join(__dirname, 'deepseek.png'),
-    backgroundColor: '#0f141f',
+    backgroundColor: '#0d111a',
     autoHideMenuBar: true,
     show: false,
     webPreferences: {
