@@ -85,25 +85,53 @@
       gap: 12px;
     }
 
-    /* Minimal Slim Progress Bar */
-    .progress-track {
-      width: 100%;
-      height: 2px;
-      background-color: rgba(255, 255, 255, 0.08);
-      border-radius: 99px;
-      overflow: hidden;
-      position: relative;
+    /* Typing-dot loader (pengganti progress bar garis) */
+    .loader-dots {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: 18px;
     }
 
-    .progress-bar {
-      position: absolute;
-      top: 0;
-      left: 0;
-      height: 100%;
-      width: 35%;
-      background-color: var(--bar-color);
+    .loader-dots span {
+      width: 6px;
+      height: 6px;
       border-radius: 99px;
-      animation: progress-slide 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      background-color: var(--bar-color);
+      animation: dot-bounce 1.2s ease-in-out infinite;
+    }
+
+    .loader-dots span:nth-child(2) {
+      animation-delay: 0.15s;
+    }
+
+    .loader-dots span:nth-child(3) {
+      animation-delay: 0.3s;
+    }
+
+    /* Versi dinamis: titik-titik kecil selama versi asli belum tiba.
+       Tidak ada lagi teks versi statis di splash. */
+    .version-pending {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .version-pending i {
+      width: 4px;
+      height: 4px;
+      border-radius: 99px;
+      background-color: var(--text-dim);
+      animation: dot-bounce 1.2s ease-in-out infinite;
+    }
+
+    .version-pending i:nth-child(2) {
+      animation-delay: 0.15s;
+    }
+
+    .version-pending i:nth-child(3) {
+      animation-delay: 0.3s;
     }
 
     /* Clean Status Label */
@@ -155,12 +183,14 @@
       }
     }
 
-    @keyframes progress-slide {
-      0% {
-        left: -35%;
+    @keyframes dot-bounce {
+      0%, 60%, 100% {
+        transform: translateY(0) scale(1);
+        opacity: 0.35;
       }
-      100% {
-        left: 100%;
+      30% {
+        transform: translateY(-5px) scale(1.15);
+        opacity: 1;
       }
     }
   </style>
@@ -175,12 +205,12 @@
     <h1 class="brand-title">
       DeepSeek <span class="brand-sub">Harness</span>
     </h1>
-    <span class="brand-edition" id="brand-edition">Community Desktop</span>
+    <span class="brand-edition"><span id="brand-version" class="version-pending" aria-label="memuat versi"><i></i><i></i><i></i></span> • Community Desktop</span>
 
     <!-- Status & Progress Section -->
     <div class="status-section">
-      <div class="progress-track">
-        <div class="progress-bar" id="progress-bar"></div>
+      <div class="loader-dots" aria-label="memuat">
+        <span></span><span></span><span></span>
       </div>
 
       <!-- Optional Update Notification Pill -->
@@ -198,7 +228,7 @@
     const logTicker = document.getElementById('log-ticker');
     const updateBadge = document.getElementById('update-badge');
     const updateBadgeText = document.getElementById('update-badge-text');
-    const brandEdition = document.getElementById('brand-edition');
+    const brandVersion = document.getElementById('brand-version');
 
     if (window.electronAPI && window.electronAPI.onStatusUpdate) {
       window.electronAPI.onStatusUpdate((data) => {
@@ -208,8 +238,11 @@
         if (data.detail) {
           logTicker.textContent = data.detail;
         }
-        if (data.version && brandEdition) {
-          brandEdition.textContent = `v${data.version} • Community Desktop`;
+        // Versi 100% dinamis dari main process (npm registry / backend).
+        // Sebelum tiba, tampil sebagai titik-titik pending (lihat .version-pending).
+        if (data.version && brandVersion) {
+          brandVersion.classList.remove('version-pending');
+          brandVersion.textContent = `v${data.version}`;
         }
         if (data.isUpdate && updateBadge) {
           updateBadge.style.display = 'inline-flex';

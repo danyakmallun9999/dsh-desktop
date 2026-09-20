@@ -30,6 +30,7 @@
       "main.js",
       "preload.js",
       "loading.html",
+      "titlebar.html",
       "deepseek.png",
       "package.json"
     ],
@@ -63,10 +64,8 @@
       "icon": "deepseek.png"
     }
   },
-  "dependencies": {
-    "electron": "^34.0.0"
-  },
   "devDependencies": {
+    "electron": "^34.0.0",
     "electron-builder": "^25.1.8"
   }
 }
