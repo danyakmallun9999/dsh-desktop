@@ -2,6 +2,16 @@
 
 > **Disclaimer**: This is an unofficial, community-driven open-source project and is not affiliated with, maintained, or endorsed by DeepSeek. It is built for developers and enthusiasts who want a desktop app experience for the DeepSeek Harness.
 
+## Screenshots
+
+![Splash screen — loading the backend with live progress](images/splash-screen.png)
+
+*Splash screen:* custom title bar with backend version, DeepSeek Harness logo, animated loader, and live status (checking for updates / starting `dsh web`).
+
+![Main window — DeepSeek Harness running inside the desktop shell](images/dashboard.png)
+
+*Main window:* the running `dsh web` UI inside the desktop shell — native-like title bar, workspace sidebar, chat / trajectory view, and task input box.
+
 ## How it works
 
 This app is a thin Electron shell around the official backend package. On every launch it runs:
